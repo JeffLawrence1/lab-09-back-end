@@ -229,7 +229,7 @@ Movies.prototype.save = function(id){
 
 Movies.fetch = (location) => {
   console.log('here in movie fetch');
-  console.log(location);
+  // console.log(location);
   // console.log(request.query.data.formatted_query);
   // console.log(location);
   const url = `https://api.themoviedb.org/3/movie/now_playing?api_key=${process.env.MOVIE_API_KEY}&language=en-US&page=1`;
@@ -237,8 +237,8 @@ Movies.fetch = (location) => {
   return superagent.get(url)
     .then(result => {
       // console.log(result.body.events.data);
-      console.log('herererehehrehhehe');
-      console.log(result.body.results);
+      // console.log('herererehehrehhehe');
+      // console.log(result.body.results);
       const movieSummaries = result.body.results.map(movie => {
         const summary = new Movies(movie);
         summary.save(location.id);
