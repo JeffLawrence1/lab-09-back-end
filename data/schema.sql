@@ -37,6 +37,7 @@ CREATE TABLE movies (
   average_votes NUMERIC(3, 2),
   popularity NUMERIC(10, 3),
   overview TEXT,
+  image_url TEXT,
   location_id INTEGER NOT NULL,
   FOREIGN KEY (location_id) REFERENCES locations (id)
 );

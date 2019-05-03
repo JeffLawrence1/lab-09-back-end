@@ -91,6 +91,7 @@ function Movies(data) {
   this.average_votes = data.vote_average;
   this.popularity = data.popularity;
   this.overview = data.overview;
+  this.image_url = `https://image.tmdb.org/t/p/original${data.poster_path}`;
 }
 
 //--------------------------------
@@ -217,8 +218,8 @@ Movies.lookup = lookup;
 
 Movies.prototype.save = function(id){
   let SQL = `INSERT INTO movies 
-    (title, released_on, total_votes, average_votes, popularity, overview, location_id)
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    (title, released_on, total_votes, average_votes, popularity, overview, image_url, location_id)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     RETURNING id;`;
 
   let values = Object.values(this);
@@ -263,7 +264,8 @@ let searchCoords = (request, response) => {
     cacheMiss: () => {
       console.log('Fetching Locations');
       Location.fetchLocation(request.query.data)
-        .then(results => response.send(results));
+        .then(results => response.send(results))
+        .catch(console.error);
     }
   };
   Location.lookup(locationHandler);
