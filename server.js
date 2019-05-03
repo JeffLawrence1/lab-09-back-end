@@ -84,6 +84,15 @@ function Events(data) {
   this.summary = data.summary;
 }
 
+function Movies(data) {
+  this.title = data.title;
+  this.released_on = data.release_date;
+  this.total_votes = data.vote_count;
+  this.average_votes = data.vote_average;
+  this.popularity = data.popularity;
+  this.overview = data.overview;
+}
+
 //--------------------------------
 // Location
 //--------------------------------
@@ -163,6 +172,7 @@ Weather.fetch = (location) => {
     });
 };
 
+
 //--------------------------------
 // Events
 //--------------------------------
@@ -195,6 +205,43 @@ Events.fetch = (location) => {
         return summary;
       });
       return eventSummaries;
+    });
+};
+
+//--------------------------------
+// Movie
+//--------------------------------
+
+Movies.tableName = 'movies';
+Movies.lookup = lookup;
+
+Movies.prototype.save = function(id){
+  let SQL = `INSERT INTO movies 
+    (title, released_on, total_votes, average_votes, popularity, overview, location_id)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    RETURNING id;`;
+
+  let values = Object.values(this);
+  values.push(id);
+
+  return client.query(SQL, values);
+};
+
+Movies.fetch = (location) => {
+  console.log('here in event fetch');
+  // console.log(request.query.data.formatted_query);
+  // console.log(location);
+  const url = `https://api.themoviedb.org/3/movie/now_playing?api_key=${MOVIE_API_KEY}&language=en-US&page=1`;
+  // const url = `https://www.eventbriteapi.com/v3/events/search?token=${process.env.EVENTBRITE_API_KEY}&location.address=${location.formatted_query}`;
+  return superagent.get(url)
+    .then(result => {
+      // console.log(result.body.events.data);
+      const movieSummaries = result.body.events.map(movie => {
+        const summary = new Movies(movie);
+        summary.save(location.id);
+        return summary;
+      });
+      return movieSummaries;
     });
 };
 //--------------------------------
@@ -252,19 +299,23 @@ let getEvents = (request, response) => {
   Events.lookup(eventHandler);
 };
 
-
-//   let url = `https://www.eventbriteapi.com/v3/events/search?token=${process.env.EVENTBRITE_API_KEY}&location.address=${request.query.data.formatted_query}`;
-
-//   return superagent.get(url)
-//     .then(result => {
-//       const eventData = result.body.events.map(event => {
-//         return new Events(event);
-//       });
-
-//       response.send(eventData);
-//     })
-//     .catch(() => errorMessage());
-// };
+let getMovies = (request, response) => {
+  const eventHandler = {
+    location: request.query.data,
+    tableName: Movies.tableName,
+    cacheHit: results => {
+      console.log('Got the data Movies');
+      response.send(results[0]);
+    },
+    cacheMiss: () => {
+      console.log('Fetching Movies');
+      // console.log(request.query.data);
+      Movies.fetch(request.query.data)
+        .then(results => response.send(results));
+    }
+  };
+  Movies.lookup(eventHandler);
+};
 
 //--------------------------------
 // Routes
@@ -272,6 +323,7 @@ let getEvents = (request, response) => {
 app.get('/location', searchCoords);
 app.get('/weather', getWeather);
 app.get('/events', getEvents);
+app.get('/movies', getMovies);
 
 
 //--------------------------------
