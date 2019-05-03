@@ -1,0 +1,29 @@
+{
+  "name": "lab-09-back-end",
+  "version": "1.0.0",
+  "description": "lab-09-back-end",
+  "main": "server.js",
+  "dependencies": {
+    "dotenv": "^8.0.0",
+    "cors": "^2.8.5",
+    "express": "^4.16.4",
+    "pg": "^7.10.0",
+    "superagent": "^5.0.5"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "flushdb": "psql -d city_explorer -f schema.sql"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MarkArlenSwearingen/lab-09-back-end.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MarkArlenSwearingen/lab-09-back-end/issues"
+  },
+  "homepage": "https://github.com/MarkArlenSwearingen/lab-09-back-end#readme"
+}
