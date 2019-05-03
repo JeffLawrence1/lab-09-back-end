@@ -230,16 +230,12 @@ Movies.prototype.save = function(id){
 
 Movies.fetch = (location) => {
   console.log('here in movie fetch');
-  // console.log(location);
-  // console.log(request.query.data.formatted_query);
-  // console.log(location);
+
   const url = `https://api.themoviedb.org/3/movie/now_playing?api_key=${process.env.MOVIE_API_KEY}&language=en-US&page=1`;
-  // const url = `https://www.eventbriteapi.com/v3/events/search?token=${process.env.EVENTBRITE_API_KEY}&location.address=${location.formatted_query}`;
+
   return superagent.get(url)
     .then(result => {
-      // console.log(result.body.events.data);
-      // console.log('herererehehrehhehe');
-      // console.log(result.body.results);
+
       const movieSummaries = result.body.results.map(movie => {
         const summary = new Movies(movie);
         summary.save(location.id);
@@ -296,11 +292,11 @@ let getEvents = (request, response) => {
     tableName: Events.tableName,
     cacheHit: results => {
       console.log('Got the data Events');
-      response.send(results[0]);
+      response.send(results.rows);
     },
     cacheMiss: () => {
       console.log('Fetching Event');
-      // console.log(request.query.data);
+
       Events.fetch(request.query.data)
         .then(results => response.send(results))
         .catch(console.error);
@@ -315,11 +311,10 @@ let getMovies = (request, response) => {
     tableName: Movies.tableName,
     cacheHit: results => {
       console.log('Got the data Movies');
-      response.send(results[0]);
+      response.send(results.rows);
     },
     cacheMiss: () => {
       console.log('Fetching Movies');
-      // console.log(request.query.data);
       Movies.fetch(request.query.data)
         .then(results => response.send(results))
         .catch(console.error);
