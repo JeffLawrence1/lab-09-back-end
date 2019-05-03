@@ -48,7 +48,7 @@ let errorMessage = () => {
 // Helper functions
 //--------------------------------
 let lookup = (handler) => {
-  const SQL = `SELECT * FROM ${handler.tableName} WHERE location_id=$1`;
+  const SQL = `SELECT * FROM ${handler.tableName} WHERE location_id=$1;`;
 
   return client.query(SQL, [handler.location.id])
     .then(result => {
