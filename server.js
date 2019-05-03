@@ -181,7 +181,7 @@ Events.lookup = lookup;
 
 Events.prototype.save = function(id){
   let SQL = `INSERT INTO events 
-    (link, event_name, event_date, summary, location_id)
+    (link, name, event_date, summary, location_id)
     VALUES ($1, $2, $3, $4, $5)
     RETURNING id;`;
 
@@ -228,20 +228,26 @@ Movies.prototype.save = function(id){
 };
 
 Movies.fetch = (location) => {
-  console.log('here in event fetch');
+  console.log('here in movie fetch');
+  console.log(location);
   // console.log(request.query.data.formatted_query);
   // console.log(location);
-  const url = `https://api.themoviedb.org/3/movie/now_playing?api_key=${MOVIE_API_KEY}&language=en-US&page=1`;
+  const url = `https://api.themoviedb.org/3/movie/now_playing?api_key=${process.env.MOVIE_API_KEY}&language=en-US&page=1`;
   // const url = `https://www.eventbriteapi.com/v3/events/search?token=${process.env.EVENTBRITE_API_KEY}&location.address=${location.formatted_query}`;
   return superagent.get(url)
     .then(result => {
       // console.log(result.body.events.data);
-      const movieSummaries = result.body.events.map(movie => {
+      console.log('herererehehrehhehe');
+      console.log(result.body.results);
+      const movieSummaries = result.body.results.map(movie => {
         const summary = new Movies(movie);
         summary.save(location.id);
         return summary;
       });
       return movieSummaries;
+    })
+    .catch(error => {
+      console.log(error);
     });
 };
 //--------------------------------
@@ -275,7 +281,8 @@ let getWeather = (request, response) => {
     cacheMiss: () => {
       console.log('Fetching Weather');
       Weather.fetch(request.query.data)
-        .then(results => response.send(results));
+        .then(results => response.send(results))
+        .catch(console.error);
     }
   };
   Weather.lookup(weatherHandler);
@@ -293,7 +300,8 @@ let getEvents = (request, response) => {
       console.log('Fetching Event');
       // console.log(request.query.data);
       Events.fetch(request.query.data)
-        .then(results => response.send(results));
+        .then(results => response.send(results))
+        .catch(console.error);
     }
   };
   Events.lookup(eventHandler);
@@ -311,7 +319,8 @@ let getMovies = (request, response) => {
       console.log('Fetching Movies');
       // console.log(request.query.data);
       Movies.fetch(request.query.data)
-        .then(results => response.send(results));
+        .then(results => response.send(results))
+        .catch(console.error);
     }
   };
   Movies.lookup(eventHandler);

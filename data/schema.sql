@@ -27,16 +27,16 @@ CREATE TABLE events (
   summary VARCHAR(255),
   location_id INTEGER NOT NULL,
   FOREIGN KEY (location_id) REFERENCES locations (id)
-)
+);
 
 CREATE TABLE movies (
   id SERIAL PRIMARY KEY,
   title VARCHAR(255),
   released_on VARCHAR(255),
   total_votes BIGINT,
-  average_votes BIGINT,
-  popularity NUMERIC(10, 5),
+  average_votes NUMERIC(3, 2),
+  popularity NUMERIC(10, 3),
   overview TEXT,
   location_id INTEGER NOT NULL,
   FOREIGN KEY (location_id) REFERENCES locations (id)
-)
+);
