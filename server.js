@@ -11,6 +11,8 @@ const express = require('express');
 const cors = require('cors');
 const superagent = require('superagent');
 const pg = require('pg');
+const yelp = require('yelp-fusion');
+const client = yelp.client(`${process.env.YELP_API_KEY}`);
 
 //--------------------------------
 //Application setup
@@ -262,6 +264,26 @@ Movies.fetch = (location) => {
 Yelp.tableName = 'yelps';
 Yelp.lookup = lookup;
 
+ Yelp.fetch = (location) => {
+  console.log('here in yelp');
+          
+  const url = `https://api.yelp.com/v3/businesses/search?location=${location.name}`;
+          
+  return superagent.get(url)
+      .set('Authorization', `Bearer ${process.env.YELP_API_KEY}`)
+      .then(result => {
+      console.log(results.body.results);
+      const yelpSummaries = result.body.results.map(review => {
+      const summary = new Yelp(review);
+      summary.save(location.id);
+      return summary;
+      });
+    return yelpSummaries;
+    })
+    .catch(error => {
+    console.log(error);
+  });
+};
 //--------------------------------
 // Route Callbacks
 //--------------------------------
