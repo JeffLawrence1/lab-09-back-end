@@ -94,6 +94,14 @@ function Movies(data) {
   this.image_url = `https://image.tmdb.org/t/p/original${data.poster_path}`;
 }
 
+function Yelp(data) {
+  this.name =;
+  this.rating =;
+  this.price =;
+  this.url =;
+  this.image_url =;
+}
+
 //--------------------------------
 // Location
 //--------------------------------
@@ -247,6 +255,13 @@ Movies.fetch = (location) => {
       console.log(error);
     });
 };
+
+//--------------------------------
+// Yelp
+//--------------------------------
+Yelp.tableName = 'yelps';
+Yelp.lookup = lookup;
+
 //--------------------------------
 // Route Callbacks
 //--------------------------------
@@ -323,6 +338,24 @@ let getMovies = (request, response) => {
   Movies.lookup(eventHandler);
 };
 
+let getYelp = (request, response) => {
+  const eventHandler = {
+    location: request.query.data,
+    tableName: Yelp.tableName,
+    cacheHit: results => {
+      console.log('Got the data Yelp');
+      response.send(results.rows);
+    },
+    cacheMiss: () => {
+      console.log('Fetching Yelp');
+      Yelp.fetch(request.query.data)
+        .then(results => response.send(results))
+        .catch(console.error);
+    }
+  };
+  Yelp.lookup(eventHandler);
+};
+
 //--------------------------------
 // Routes
 //--------------------------------
@@ -330,6 +363,7 @@ app.get('/location', searchCoords);
 app.get('/weather', getWeather);
 app.get('/events', getEvents);
 app.get('/movies', getMovies);
+app.get('/yelp', getYelp);
 
 
 //--------------------------------
