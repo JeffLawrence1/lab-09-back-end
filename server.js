@@ -48,7 +48,7 @@ let errorMessage = () => {
 // Helper functions
 //--------------------------------
 let lookup = (handler) => {
-  const SQL = `SELECT * FROM ${handler.tableName} WHERE location_id=$1`;
+  const SQL = `SELECT * FROM ${handler.tableName} WHERE location_id=$1;`;
 
   return client.query(SQL, [handler.location.id])
     .then(result => {
@@ -60,6 +60,20 @@ let lookup = (handler) => {
     })
     .catch(errorMessage);
 };
+
+let deleteByLocationId = (table, location_id) => {
+  const SQL = `DELETE FROM ${table} WHERE location_id=${location_id}`;
+
+  return client.query(SQL);
+};
+
+const timeouts = {
+  weather: 15 * 1000,  // 15 seconds per request
+  events: 60 * 60 * 1000, // hourly update for latest events but not too frequent
+  movies: 60 * 60 * 24 * 1000, // daily movie updates for latest movies but not too frequent
+  yelp: 60 * 60 * 4 * 1000 // update every four hours for latest reviews but not too frequent
+};
+
 //--------------------------------
 // Constructors Functions
 //--------------------------------
@@ -73,6 +87,7 @@ function Location(query, geoData) {
 function Weather(day) {
   this.forecast = day.summary;
   this.time = new Date(day.time * 1000).toDateString();
+  this.created_at = Date.now();
 }
 
 function Events(data) {
@@ -82,6 +97,7 @@ function Events(data) {
   this.name = data.name.text;
   this.event_date = newDate;
   this.summary = data.summary;
+  this.created_at = Date.now();
 }
 
 function Movies(data) {
@@ -91,6 +107,17 @@ function Movies(data) {
   this.average_votes = data.vote_average;
   this.popularity = data.popularity;
   this.overview = data.overview;
+  this.image_url = `https://image.tmdb.org/t/p/original${data.poster_path}`;
+  this.created_at = Date.now();
+}
+
+function Yelp(data) {
+  this.name = data.name;
+  this.rating = data.rating;
+  this.price = data.price;
+  this.url = data.url;
+  this.image_url = data.image_url;
+  this.created_at = Date.now();
 }
 
 //--------------------------------
@@ -144,11 +171,12 @@ Location.prototype.save = function(){
 //--------------------------------
 Weather.tableName = 'weathers';
 Weather.lookup = lookup;
+Weather.deleteByLocationId = deleteByLocationId;
 
 Weather.prototype.save = function(id){
   let SQL = `INSERT INTO weathers 
-    (forecast, time, location_id)
-    VALUES ($1, $2, $3)
+    (forecast, time, created_at, location_id)
+    VALUES ($1, $2, $3, $4)
     RETURNING id;`;
 
   let values = Object.values(this);
@@ -181,8 +209,8 @@ Events.lookup = lookup;
 
 Events.prototype.save = function(id){
   let SQL = `INSERT INTO events 
-    (link, name, event_date, summary, location_id)
-    VALUES ($1, $2, $3, $4, $5)
+    (link, name, event_date, summary, created_at, location_id)
+    VALUES ($1, $2, $3, $4, $5, $6)
     RETURNING id;`;
 
   let values = Object.values(this);
@@ -193,12 +221,9 @@ Events.prototype.save = function(id){
 
 Events.fetch = (location) => {
   console.log('here in event fetch');
-  // console.log(request.query.data.formatted_query);
-  // console.log(location);
   const url = `https://www.eventbriteapi.com/v3/events/search?token=${process.env.EVENTBRITE_API_KEY}&location.address=${location.formatted_query}`;
   return superagent.get(url)
     .then(result => {
-      // console.log(result.body.events.data);
       const eventSummaries = result.body.events.map(event => {
         const summary = new Events(event);
         summary.save(location.id);
@@ -217,8 +242,8 @@ Movies.lookup = lookup;
 
 Movies.prototype.save = function(id){
   let SQL = `INSERT INTO movies 
-    (title, released_on, total_votes, average_votes, popularity, overview, location_id)
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    (title, released_on, total_votes, average_votes, popularity, overview, image_url, created_at, location_id)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     RETURNING id;`;
 
   let values = Object.values(this);
@@ -229,22 +254,56 @@ Movies.prototype.save = function(id){
 
 Movies.fetch = (location) => {
   console.log('here in movie fetch');
-  // console.log(location);
-  // console.log(request.query.data.formatted_query);
-  // console.log(location);
+
   const url = `https://api.themoviedb.org/3/movie/now_playing?api_key=${process.env.MOVIE_API_KEY}&language=en-US&page=1`;
-  // const url = `https://www.eventbriteapi.com/v3/events/search?token=${process.env.EVENTBRITE_API_KEY}&location.address=${location.formatted_query}`;
+
   return superagent.get(url)
     .then(result => {
-      // console.log(result.body.events.data);
-      // console.log('herererehehrehhehe');
-      // console.log(result.body.results);
+
       const movieSummaries = result.body.results.map(movie => {
         const summary = new Movies(movie);
         summary.save(location.id);
         return summary;
       });
       return movieSummaries;
+    })
+    .catch(error => {
+      console.log(error);
+    });
+};
+
+//--------------------------------
+// Yelp
+//--------------------------------
+Yelp.tableName = 'yelps';
+Yelp.lookup = lookup;
+
+Yelp.prototype.save = function(id){
+  let SQL = `INSERT INTO yelps 
+    (name, rating, price, url, image_url, created_at, location_id)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    RETURNING id;`;
+
+  let values = Object.values(this);
+  values.push(id);
+
+  return client.query(SQL, values);
+};
+
+Yelp.fetch = (location) => {
+  console.log('here in yelp');
+
+  const url = `https://api.yelp.com/v3/businesses/search?location=${location.search_query}`;
+
+  return superagent.get(url)
+    .set('Authorization', `Bearer ${process.env.YELP_API_KEY}`)
+    .then(result => {
+      const yelpSummaries = result.body.businesses.map(review => {
+        const summary = new Yelp(review);
+        summary.save(location.id);
+        return summary;
+      });
+      return yelpSummaries;
     })
     .catch(error => {
       console.log(error);
@@ -263,20 +322,28 @@ let searchCoords = (request, response) => {
     cacheMiss: () => {
       console.log('Fetching Locations');
       Location.fetchLocation(request.query.data)
-        .then(results => response.send(results));
+        .then(results => response.send(results))
+        .catch(console.error);
     }
   };
   Location.lookup(locationHandler);
 };
 
 let getWeather = (request, response) => {
-  // console.log(request.query.data);
   const weatherHandler = {
     location: request.query.data,
     tableName: Weather.tableName,
-    cacheHit: results => {
-      console.log('Got the data Weather');
-      response.send(results[0]);
+    cacheHit: function(result){
+      let ageOfResults = (Date.now() - result.rows[0].created_at);
+      if(ageOfResults > timeouts.weather){
+        console.log('weather cache was invalid');
+        Weather.deleteByLocationId(Weather.tableName, request.query.data.id);
+        this.cacheMiss;
+      }else{
+        console.log('weather cache was valid');
+        response.send(result.rows);
+      }
+
     },
     cacheMiss: () => {
       console.log('Fetching Weather');
@@ -292,13 +359,20 @@ let getEvents = (request, response) => {
   const eventHandler = {
     location: request.query.data,
     tableName: Events.tableName,
-    cacheHit: results => {
-      console.log('Got the data Events');
-      response.send(results[0]);
+    cacheHit: function(result){
+      let ageOfResults = (Date.now() - result.rows[0].created_at);
+      if(ageOfResults > timeouts.events){
+        console.log('events cache was invalid');
+        Events.deleteByLocationId(Events.tableName, request.query.data.id);
+        this.cacheMiss;
+      }else{
+        console.log('events cache was valid');
+        response.send(result.rows);
+      }
     },
     cacheMiss: () => {
       console.log('Fetching Event');
-      // console.log(request.query.data);
+
       Events.fetch(request.query.data)
         .then(results => response.send(results))
         .catch(console.error);
@@ -311,19 +385,50 @@ let getMovies = (request, response) => {
   const eventHandler = {
     location: request.query.data,
     tableName: Movies.tableName,
-    cacheHit: results => {
-      console.log('Got the data Movies');
-      response.send(results[0]);
+    cacheHit: function(result){
+      let ageOfResults = (Date.now() - result.rows[0].created_at);
+      if(ageOfResults > timeouts.movies){
+        console.log('movies cache was invalid');
+        Movies.deleteByLocationId(Movies.tableName, request.query.data.id);
+        this.cacheMiss;
+      }else{
+        console.log('movies cache was valid');
+        response.send(result.rows);
+      }
     },
     cacheMiss: () => {
       console.log('Fetching Movies');
-      // console.log(request.query.data);
       Movies.fetch(request.query.data)
         .then(results => response.send(results))
         .catch(console.error);
     }
   };
   Movies.lookup(eventHandler);
+};
+
+let getYelp = (request, response) => {
+  const eventHandler = {
+    location: request.query.data,
+    tableName: Yelp.tableName,
+    cacheHit: function(result){
+      let ageOfResults = (Date.now() - result.rows[0].created_at);
+      if(ageOfResults > timeouts.yelp){
+        console.log('yelp cache was invalid');
+        Yelp.deleteByLocationId(Yelp.tableName, request.query.data.id);
+        this.cacheMiss;
+      }else{
+        console.log('yelp cache was valid');
+        response.send(result.rows);
+      }
+    },
+    cacheMiss: () => {
+      console.log('Fetching Yelp');
+      Yelp.fetch(request.query.data)
+        .then(results => response.send(results))
+        .catch(console.error);
+    }
+  };
+  Yelp.lookup(eventHandler);
 };
 
 //--------------------------------
@@ -333,6 +438,7 @@ app.get('/location', searchCoords);
 app.get('/weather', getWeather);
 app.get('/events', getEvents);
 app.get('/movies', getMovies);
+app.get('/yelp', getYelp);
 
 
 //--------------------------------
