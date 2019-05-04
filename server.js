@@ -11,8 +11,6 @@ const express = require('express');
 const cors = require('cors');
 const superagent = require('superagent');
 const pg = require('pg');
-// const yelp = require('yelp-fusion');
-// const client = yelp.client(`${process.env.YELP_API_KEY}`);
 
 //--------------------------------
 //Application setup
@@ -204,12 +202,9 @@ Events.prototype.save = function(id){
 
 Events.fetch = (location) => {
   console.log('here in event fetch');
-  // console.log(request.query.data.formatted_query);
-  // console.log(location);
   const url = `https://www.eventbriteapi.com/v3/events/search?token=${process.env.EVENTBRITE_API_KEY}&location.address=${location.formatted_query}`;
   return superagent.get(url)
     .then(result => {
-      // console.log(result.body.events.data);
       const eventSummaries = result.body.events.map(event => {
         const summary = new Events(event);
         summary.save(location.id);
@@ -278,13 +273,12 @@ Yelp.prototype.save = function(id){
 
 Yelp.fetch = (location) => {
   console.log('here in yelp');
-  // console.log(location);
+
   const url = `https://api.yelp.com/v3/businesses/search?location=${location.search_query}`;
 
   return superagent.get(url)
     .set('Authorization', `Bearer ${process.env.YELP_API_KEY}`)
     .then(result => {
-      // console.log(result.body.businesses);
       const yelpSummaries = result.body.businesses.map(review => {
         const summary = new Yelp(review);
         summary.save(location.id);
@@ -317,7 +311,6 @@ let searchCoords = (request, response) => {
 };
 
 let getWeather = (request, response) => {
-  // console.log(request.query.data);
   const weatherHandler = {
     location: request.query.data,
     tableName: Weather.tableName,
