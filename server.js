@@ -278,13 +278,13 @@ Yelp.prototype.save = function(id){
 
 Yelp.fetch = (location) => {
   console.log('here in yelp');
-
-  const url = `https://api.yelp.com/v3/businesses/search?location=${location.name}`;
+  // console.log(location);
+  const url = `https://api.yelp.com/v3/businesses/search?location=${location.search_query}`;
 
   return superagent.get(url)
     .set('Authorization', `Bearer ${process.env.YELP_API_KEY}`)
     .then(result => {
-      console.log(result.body.businesses);
+      // console.log(result.body.businesses);
       const yelpSummaries = result.body.businesses.map(review => {
         const summary = new Yelp(review);
         summary.save(location.id);
