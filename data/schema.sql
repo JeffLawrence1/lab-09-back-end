@@ -41,6 +41,7 @@ CREATE TABLE movies (
   popularity NUMERIC(10, 3),
   overview TEXT,
   image_url TEXT,
+  created_at BIGINT,
   location_id INTEGER NOT NULL,
   FOREIGN KEY (location_id) REFERENCES locations (id)
 );

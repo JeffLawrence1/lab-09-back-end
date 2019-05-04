@@ -70,6 +70,7 @@ let deleteByLocationId = (table, location_id) => {
 const timeouts = {
   weather: 15 * 1000,  // 15 seconds per request
   events: 60 * 60 * 1000, // hourly update for latest events but not too frequent
+  movies: 60 * 60 * 24 * 1000, // daily movie updates for latest movies but not too frequent
 };
 
 //--------------------------------
@@ -106,6 +107,7 @@ function Movies(data) {
   this.popularity = data.popularity;
   this.overview = data.overview;
   this.image_url = `https://image.tmdb.org/t/p/original${data.poster_path}`;
+  this.created_at = Date.now();
 }
 
 function Yelp(data) {
@@ -238,8 +240,8 @@ Movies.lookup = lookup;
 
 Movies.prototype.save = function(id){
   let SQL = `INSERT INTO movies 
-    (title, released_on, total_votes, average_votes, popularity, overview, image_url, location_id)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    (title, released_on, total_votes, average_votes, popularity, overview, image_url, created_at, location_id)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     RETURNING id;`;
 
   let values = Object.values(this);
@@ -362,7 +364,7 @@ let getEvents = (request, response) => {
         Events.deleteByLocationId(Events.tableName, request.query.data.id);
         this.cacheMiss;
       }else{
-        console.log('weather cache was valid');
+        console.log('events cache was valid');
         response.send(result.rows);
       }
     },
@@ -381,9 +383,16 @@ let getMovies = (request, response) => {
   const eventHandler = {
     location: request.query.data,
     tableName: Movies.tableName,
-    cacheHit: results => {
-      console.log('Got the data Movies');
-      response.send(results.rows);
+    cacheHit: function(result){
+      let ageOfResults = (Date.now() - result.rows[0].created_at);
+      if(ageOfResults > timeouts.movies){
+        console.log('movies cache was invalid');
+        Movies.deleteByLocationId(Movies.tableName, request.query.data.id);
+        this.cacheMiss;
+      }else{
+        console.log('movies cache was valid');
+        response.send(result.rows);
+      }
     },
     cacheMiss: () => {
       console.log('Fetching Movies');
