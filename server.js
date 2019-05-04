@@ -68,7 +68,8 @@ let deleteByLocationId = (table, location_id) => {
 };
 
 const timeouts = {
-  weather: 15 * 1000,
+  weather: 15 * 1000,  // 15 seconds per request
+  events: 60 * 60 * 1000, // hourly update for latest events but not too frequent
 };
 
 //--------------------------------
@@ -94,6 +95,7 @@ function Events(data) {
   this.name = data.name.text;
   this.event_date = newDate;
   this.summary = data.summary;
+  this.created_at = Date.now();
 }
 
 function Movies(data) {
@@ -203,8 +205,8 @@ Events.lookup = lookup;
 
 Events.prototype.save = function(id){
   let SQL = `INSERT INTO events 
-    (link, name, event_date, summary, location_id)
-    VALUES ($1, $2, $3, $4, $5)
+    (link, name, event_date, summary, created_at, location_id)
+    VALUES ($1, $2, $3, $4, $5, $6)
     RETURNING id;`;
 
   let values = Object.values(this);
@@ -353,9 +355,16 @@ let getEvents = (request, response) => {
   const eventHandler = {
     location: request.query.data,
     tableName: Events.tableName,
-    cacheHit: results => {
-      console.log('Got the data Events');
-      response.send(results.rows);
+    cacheHit: function(result){
+      let ageOfResults = (Date.now() - result.rows[0].created_at);
+      if(ageOfResults > timeouts.events){
+        console.log('events cache was invalid');
+        Events.deleteByLocationId(Events.tableName, request.query.data.id);
+        this.cacheMiss;
+      }else{
+        console.log('weather cache was valid');
+        response.send(result.rows);
+      }
     },
     cacheMiss: () => {
       console.log('Fetching Event');

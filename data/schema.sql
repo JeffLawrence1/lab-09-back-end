@@ -27,6 +27,7 @@ CREATE TABLE events (
   name VARCHAR(255),
   event_date VARCHAR(255),
   summary VARCHAR(255),
+  created_at BIGINT,
   location_id INTEGER NOT NULL,
   FOREIGN KEY (location_id) REFERENCES locations (id)
 );
