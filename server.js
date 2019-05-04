@@ -225,6 +225,7 @@ Weather.fetch = (location) => {
 //--------------------------------
 Events.tableName = 'events';
 Events.lookup = lookup;
+Events.deleteByLocationId = deleteByLocationId;
 
 Events.prototype.save = function(id){
   let SQL = `INSERT INTO events 
@@ -258,6 +259,7 @@ Events.fetch = (location) => {
 
 Movies.tableName = 'movies';
 Movies.lookup = lookup;
+Movies.deleteByLocationId = deleteByLocationId;
 
 Movies.prototype.save = function(id){
   let SQL = `INSERT INTO movies 
@@ -296,6 +298,7 @@ Movies.fetch = (location) => {
 //--------------------------------
 Yelp.tableName = 'yelps';
 Yelp.lookup = lookup;
+Yelp.deleteByLocationId = deleteByLocationId;
 
 Yelp.prototype.save = function(id){
   let SQL = `INSERT INTO yelps 
