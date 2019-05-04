@@ -11,8 +11,8 @@ const express = require('express');
 const cors = require('cors');
 const superagent = require('superagent');
 const pg = require('pg');
-const yelp = require('yelp-fusion');
-const client = yelp.client(`${process.env.YELP_API_KEY}`);
+// const yelp = require('yelp-fusion');
+// const client = yelp.client(`${process.env.YELP_API_KEY}`);
 
 //--------------------------------
 //Application setup
@@ -97,11 +97,11 @@ function Movies(data) {
 }
 
 function Yelp(data) {
-  this.name =;
-  this.rating =;
-  this.price =;
-  this.url =;
-  this.image_url =;
+  this.name = data.name;
+  this.rating = data.rating;
+  this.price = data.price;
+  this.url = data.url;
+  this.image_url = data.image_url;
 }
 
 //--------------------------------
@@ -264,25 +264,37 @@ Movies.fetch = (location) => {
 Yelp.tableName = 'yelps';
 Yelp.lookup = lookup;
 
- Yelp.fetch = (location) => {
+Yelp.prototype.save = function(id){
+  let SQL = `INSERT INTO yelps 
+    (name, rating, price, url, image_url, location_id)
+    VALUES ($1, $2, $3, $4, $5, $6)
+    RETURNING id;`;
+
+  let values = Object.values(this);
+  values.push(id);
+
+  return client.query(SQL, values);
+};
+
+Yelp.fetch = (location) => {
   console.log('here in yelp');
-          
+
   const url = `https://api.yelp.com/v3/businesses/search?location=${location.name}`;
-          
+
   return superagent.get(url)
-      .set('Authorization', `Bearer ${process.env.YELP_API_KEY}`)
-      .then(result => {
-      console.log(results.body.results);
-      const yelpSummaries = result.body.results.map(review => {
-      const summary = new Yelp(review);
-      summary.save(location.id);
-      return summary;
+    .set('Authorization', `Bearer ${process.env.YELP_API_KEY}`)
+    .then(result => {
+      console.log(result.body.businesses);
+      const yelpSummaries = result.body.businesses.map(review => {
+        const summary = new Yelp(review);
+        summary.save(location.id);
+        return summary;
       });
-    return yelpSummaries;
+      return yelpSummaries;
     })
     .catch(error => {
-    console.log(error);
-  });
+      console.log(error);
+    });
 };
 //--------------------------------
 // Route Callbacks
