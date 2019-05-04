@@ -60,6 +60,17 @@ let lookup = (handler) => {
     })
     .catch(errorMessage);
 };
+
+let deleteByLocationId = (table, location_id) => {
+  const SQL = `DELETE FROM ${table} WHERE location_id=${location_id}`;
+
+  return client.query(SQL);
+};
+
+const timeouts = {
+  weather: 15 * 1000,
+};
+
 //--------------------------------
 // Constructors Functions
 //--------------------------------
@@ -73,6 +84,7 @@ function Location(query, geoData) {
 function Weather(day) {
   this.forecast = day.summary;
   this.time = new Date(day.time * 1000).toDateString();
+  this.created_at = Date.now();
 }
 
 function Events(data) {
@@ -153,11 +165,12 @@ Location.prototype.save = function(){
 //--------------------------------
 Weather.tableName = 'weathers';
 Weather.lookup = lookup;
+Weather.deleteByLocationId = deleteByLocationId;
 
 Weather.prototype.save = function(id){
   let SQL = `INSERT INTO weathers 
-    (forecast, time, location_id)
-    VALUES ($1, $2, $3)
+    (forecast, time, created_at, location_id)
+    VALUES ($1, $2, $3, $4)
     RETURNING id;`;
 
   let values = Object.values(this);
@@ -314,9 +327,17 @@ let getWeather = (request, response) => {
   const weatherHandler = {
     location: request.query.data,
     tableName: Weather.tableName,
-    cacheHit: results => {
-      console.log('Got the data Weather');
-      response.send(results[0]);
+    cacheHit: function(result){
+      let ageOfResults = (Date.now() - result.rows[0].created_at);
+      if(ageOfResults > timeouts.weather){
+        console.log('weather cache was invalid');
+        Weather.deleteByLocationId(Weather.tableName, request.query.data.id);
+        this.cacheMiss;
+      }else{
+        console.log('weather cache was valid');
+        response.send(result.rows);
+      }
+
     },
     cacheMiss: () => {
       console.log('Fetching Weather');
