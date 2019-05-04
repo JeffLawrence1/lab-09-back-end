@@ -12,30 +12,12 @@ const cors = require('cors');
 const superagent = require('superagent');
 const pg = require('pg');
 
-//--------------------------------
-// Get cors to work
-//--------------------------------
-const allowCrossDomain = function(req, res, next) {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
-
-  // intercept OPTIONS method
-  if ('OPTIONS' == req.method) {
-    res.send(200);
-  }
-  else {
-    next();
-  }
-};
-
 
 //--------------------------------
 //Application setup
 //--------------------------------
 const PORT = process.env.PORT || 3000;
 const app = express();
-app.use(allowCrossDomain);
 app.use(cors());
 
 //--------------------------------
