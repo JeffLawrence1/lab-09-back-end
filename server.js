@@ -71,6 +71,7 @@ const timeouts = {
   weather: 15 * 1000,  // 15 seconds per request
   events: 60 * 60 * 1000, // hourly update for latest events but not too frequent
   movies: 60 * 60 * 24 * 1000, // daily movie updates for latest movies but not too frequent
+  yelp: 60 * 60 * 4 * 1000 // update every four hours for latest reviews but not too frequent
 };
 
 //--------------------------------
@@ -116,6 +117,7 @@ function Yelp(data) {
   this.price = data.price;
   this.url = data.url;
   this.image_url = data.image_url;
+  this.created_at = Date.now();
 }
 
 //--------------------------------
@@ -278,8 +280,8 @@ Yelp.lookup = lookup;
 
 Yelp.prototype.save = function(id){
   let SQL = `INSERT INTO yelps 
-    (name, rating, price, url, image_url, location_id)
-    VALUES ($1, $2, $3, $4, $5, $6)
+    (name, rating, price, url, image_url, created_at, location_id)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
     RETURNING id;`;
 
   let values = Object.values(this);
@@ -408,9 +410,16 @@ let getYelp = (request, response) => {
   const eventHandler = {
     location: request.query.data,
     tableName: Yelp.tableName,
-    cacheHit: results => {
-      console.log('Got the data Yelp');
-      response.send(results.rows);
+    cacheHit: function(result){
+      let ageOfResults = (Date.now() - result.rows[0].created_at);
+      if(ageOfResults > timeouts.yelp){
+        console.log('yelp cache was invalid');
+        Yelp.deleteByLocationId(Yelp.tableName, request.query.data.id);
+        this.cacheMiss;
+      }else{
+        console.log('yelp cache was valid');
+        response.send(result.rows);
+      }
     },
     cacheMiss: () => {
       console.log('Fetching Yelp');
