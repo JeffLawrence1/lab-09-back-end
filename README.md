@@ -7,20 +7,20 @@ lab-09-back-end
 ## Number and name of feature: #1 Movies
 * Estimate of time needed to complete: 1.5 hours
 * Start time: 8:50am
-* Finish time: 
-* Actual time needed to complete: x minutes
+* Finish time: 12:00
+* Actual time needed to complete: 3 hours
 
 ## Number and name of feature: #2 Yelp
 * Estimate of time needed to complete: 1.5 hours
-* Start time:
-* Finish time: 
-* Actual time needed to complete: 
+* Start time: day 2, 9 am
+* Finish time: day 2, 11 am
+* Actual time needed to complete: 2 hours
 
 ## Number and name of feature: #3 cache invalidation
 * Estimate of time needed to complete 1 hour 
-* Start time: 
-* Finish time: 
-* Actual time needed to complete:  
+* Start time: day 2, 11 am
+* Finish time: day 2, 12 noon
+* Actual time needed to complete:  1 hour
 
 ## Overview
 This application is for users to put in and API key and location data in order to retrieve information from various APIs
